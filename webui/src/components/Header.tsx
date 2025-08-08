@@ -35,7 +35,11 @@ export default function Header() {
       </label>
 
       <div className="flex items-center grow text-2xl font-bold ml-2 space-x-2">
-        <img src="/logo.png" alt="Polaris Logo" className="w-8 h-8 rounded" />
+        <img
+          src={`${import.meta.env.BASE_URL}logo.png`}
+          alt="Polaris Logo"
+          className="w-8 h-8 rounded"
+        />
         <span>Polaris v3</span>
       </div>
 
