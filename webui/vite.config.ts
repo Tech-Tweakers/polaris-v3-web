@@ -9,7 +9,7 @@ import * as fflate from 'fflate';
 /* eslint-disable */
 
 const MAX_BUNDLE_SIZE = 2 * 1024 * 1024; // só aumente se for inevitável
-const IS_PROD = process.env.NODE_ENV === 'production';
+// const IS_PROD = process.env.NODE_ENV === 'production';
 const IS_PAGES = !!process.env.PAGES; // set PAGES=1 no build do GitHub Pages
 
 const GUIDE_FOR_FRONTEND = `
@@ -74,7 +74,7 @@ const BUILD_PLUGINS = [
 
 export default defineConfig({
   // base relativa em produção (GitHub Pages), raiz em dev
-  base: IS_PROD ? './' : '/',
+  base: '/polaris-v3/',
   plugins: process.env.ANALYZE ? FRONTEND_PLUGINS : BUILD_PLUGINS,
   build: {
     outDir: 'docs',
