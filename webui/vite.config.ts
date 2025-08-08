@@ -1,3 +1,4 @@
+// vite.config.ts
 import { defineConfig, PluginOption } from 'vite';
 import react from '@vitejs/plugin-react';
 import { viteSingleFile } from 'vite-plugin-singlefile';
@@ -7,7 +8,9 @@ import * as fflate from 'fflate';
 
 /* eslint-disable */
 
-const MAX_BUNDLE_SIZE = 2 * 1024 * 1024; // only increase when absolutely necessary
+const MAX_BUNDLE_SIZE = 2 * 1024 * 1024; // só aumente se for inevitável
+const IS_PROD = process.env.NODE_ENV === 'production';
+const IS_PAGES = !!process.env.PAGES; // set PAGES=1 no build do GitHub Pages
 
 const GUIDE_FOR_FRONTEND = `
 <!--
@@ -20,60 +23,68 @@ const GUIDE_FOR_FRONTEND = `
 
 const FRONTEND_PLUGINS = [react()];
 
-const BUILD_PLUGINS = [
-  ...FRONTEND_PLUGINS,
-  viteSingleFile(),
-  (function llamaCppPlugin() {
-    let config: any;
-    return {
-      name: 'llamacpp:build',
-      apply: 'build',
-      async configResolved(_config: any) {
-        config = _config;
-      },
-      writeBundle() {
-        const outputIndexHtml = path.join(config.build.outDir, 'index.html');
-        let content =
-          GUIDE_FOR_FRONTEND + '\n' + fs.readFileSync(outputIndexHtml, 'utf-8');
-        content = content.replace(/\r/g, ''); // remove windows-style line endings
-        const compressed = fflate.gzipSync(Buffer.from(content, 'utf-8'), {
-          level: 9,
-        });
+function gzipSingleFilePlugin(): PluginOption {
+  let config: any;
+  return {
+    name: 'llamacpp:build',
+    apply: 'build',
+    async configResolved(_config: any) {
+      config = _config;
+    },
+    writeBundle() {
+      const outputIndexHtml = path.join(config.build.outDir, 'index.html');
+      let content =
+        GUIDE_FOR_FRONTEND + '\n' + fs.readFileSync(outputIndexHtml, 'utf-8');
+      content = content.replace(/\r/g, '');
+      const compressed = fflate.gzipSync(Buffer.from(content, 'utf-8'), {
+        level: 9,
+      });
 
-        // because gzip header contains machine-specific info, we must remove these data from the header
-        // timestamp
-        compressed[0x4] = 0;
-        compressed[0x5] = 0;
-        compressed[0x6] = 0;
-        compressed[0x7] = 0;
-        // OS
-        compressed[0x9] = 0;
+      // normaliza header do gzip (timestamp/OS)
+      compressed[0x4] = 0;
+      compressed[0x5] = 0;
+      compressed[0x6] = 0;
+      compressed[0x7] = 0;
+      compressed[0x9] = 0;
 
-        if (compressed.byteLength > MAX_BUNDLE_SIZE) {
-          throw new Error(
-            `Bundle size is too large (${Math.ceil(compressed.byteLength / 1024)} KB).\n` +
-              `Please reduce the size of the frontend or increase MAX_BUNDLE_SIZE in vite.config.js.\n`
-          );
-        }
-
-        const targetOutputFile = path.join(
-          config.build.outDir,
-          '../../public/index.html.gz'
+      if (compressed.byteLength > MAX_BUNDLE_SIZE) {
+        throw new Error(
+          `Bundle size is too large (${Math.ceil(compressed.byteLength / 1024)} KB).\n` +
+            `Please reduce the size of the frontend or increase MAX_BUNDLE_SIZE in vite.config.ts.\n`
         );
-        fs.writeFileSync(targetOutputFile, compressed);
-      },
-    } satisfies PluginOption;
-  })(),
+      }
+
+      const targetOutputFile = path.join(
+        config.build.outDir,
+        '../../public/index.html.gz'
+      );
+      fs.writeFileSync(targetOutputFile, compressed);
+    },
+  };
+}
+
+// Plugins de build:
+// - singlefile + react sempre
+// - gzip é desativado no GitHub Pages (não serve .gz com Content-Encoding automático)
+const BUILD_PLUGINS = [
+  react(),
+  viteSingleFile(),
+  ...(IS_PAGES ? [] : [gzipSingleFilePlugin()]),
 ];
 
 export default defineConfig({
-  // @ts-ignore
+  // base relativa em produção (GitHub Pages), raiz em dev
+  base: IS_PROD ? './' : '/',
   plugins: process.env.ANALYZE ? FRONTEND_PLUGINS : BUILD_PLUGINS,
+  build: {
+    outDir: 'docs',
+    emptyOutDir: true,
+  },
   server: {
     hmr: {
       clientPort: 443,
       protocol: 'wss',
-      host: '3e8c44fe4147.ngrok-free.app ',
+      host: '3e8c44fe4147.ngrok-free.app', // sem espaço no final
     },
     proxy: {
       '/v1': 'http://localhost:8000',
