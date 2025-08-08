@@ -4,8 +4,8 @@ import { isNumeric } from './utils/misc';
 export const isDev = import.meta.env.MODE === 'development';
 
 // constants
-export const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
-
+export const BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 
 export const CONFIG_DEFAULT = {
   // Note: in order not to introduce breaking changes, please keep the same data type (number, string, etc) if you want to change the default value. Do not use null or undefined for default value.

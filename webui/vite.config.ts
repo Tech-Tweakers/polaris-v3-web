@@ -73,7 +73,7 @@ export default defineConfig({
     hmr: {
       clientPort: 443,
       protocol: 'wss',
-      host: '3e8c44fe4147.ngrok-free.app '
+      host: '3e8c44fe4147.ngrok-free.app ',
     },
     proxy: {
       '/v1': 'http://localhost:8000',
