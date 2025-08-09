@@ -84,16 +84,16 @@ export default defineConfig({
     hmr: {
       clientPort: 443,
       protocol: 'wss',
-      host: '3e8c44fe4147.ngrok-free.app', // sem espaço no final
+      host: '75b9c36e3185.ngrok-free.app', // sem espaço no final
     },
     proxy: {
-      '/v1': 'http://localhost:8000',
-      '/props': 'http://localhost:8000',
+      '/v1': '75b9c36e3185.ngrok-free.app',
+      '/props': '75b9c36e3185.ngrok-free.app',
     },
     headers: {
       'Cross-Origin-Embedder-Policy': 'require-corp',
       'Cross-Origin-Opener-Policy': 'same-origin',
     },
-    allowedHosts: ['3e8c44fe4147.ngrok-free.app'],
+    allowedHosts: ['75b9c36e3185.ngrok-free.app'],
   },
 });
