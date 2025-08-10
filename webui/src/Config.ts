@@ -9,15 +9,19 @@ export const getBaseUrl = (): string => {
   if (fromEnv && fromEnv.trim().length > 0) {
     return fromEnv.replace(/\/+$/, '');
   }
-  // Optional runtime override without rebuild: set window.__API_BASE_URL__
   if (typeof window !== 'undefined') {
+    // Prefer explicit global override
     const w = window as Window & { __API_BASE_URL__?: string };
-    const fromWindow = w.__API_BASE_URL__;
-    if (fromWindow && fromWindow.trim().length > 0) {
-      return fromWindow.replace(/\/+$/, '');
+    if (w.__API_BASE_URL__ && w.__API_BASE_URL__.trim().length > 0) {
+      return w.__API_BASE_URL__.replace(/\/+$/, '');
+    }
+    // Fallback to stored value (set during bootstrap or by user)
+    const fromStorage = localStorage.getItem('api_base_url') || '';
+    if (fromStorage.trim().length > 0) {
+      return fromStorage.replace(/\/+$/, '');
     }
   }
-  // Default to same-origin by returning empty string so fetch(`/path`) works
+  // Default to same-origin
   return '';
 };
 
