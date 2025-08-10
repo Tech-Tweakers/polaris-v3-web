@@ -81,19 +81,32 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    hmr: {
-      clientPort: 443,
-      protocol: 'wss',
-      host: '75b9c36e3185.ngrok-free.app', // sem espaço no final
-    },
+    host: true,
+    port: 5173,
+    // Use sensible defaults for HMR; override via env if tunneling is required
+    // hmr: { clientPort: 443, protocol: 'wss', host: '75b9c36e3185.ngrok-free.app' },
     proxy: {
-      '/v1': '75b9c36e3185.ngrok-free.app',
-      '/props': '75b9c36e3185.ngrok-free.app',
+      '/v1': {
+        target: 'https://75b9c36e3185.ngrok-free.app',
+        changeOrigin: true,
+        secure: true,
+      },
+      '/props': {
+        target: 'https://75b9c36e3185.ngrok-free.app',
+        changeOrigin: true,
+        secure: true,
+      },
+      '/inference': {
+        target: 'https://75b9c36e3185.ngrok-free.app',
+        changeOrigin: true,
+        secure: true,
+      },
     },
-    headers: {
-      'Cross-Origin-Embedder-Policy': 'require-corp',
-      'Cross-Origin-Opener-Policy': 'same-origin',
-    },
-    allowedHosts: ['75b9c36e3185.ngrok-free.app'],
+    // Removing COEP/COOP in dev to avoid blocking cross-origin requests on some mobile browsers
+    // headers: {
+    //   'Cross-Origin-Embedder-Policy': 'require-corp',
+    //   'Cross-Origin-Opener-Policy': 'same-origin',
+    // },
+    // allowedHosts: ['75b9c36e3185.ngrok-free.app'],
   },
 });

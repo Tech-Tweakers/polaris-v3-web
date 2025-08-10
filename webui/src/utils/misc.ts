@@ -181,7 +181,7 @@ export const getServerProps = async (
   try {
     const response = await fetch(`${baseUrl}/props`, {
       headers: {
-        'Content-Type': 'application/json',
+        // Removing Content-Type avoids unnecessary CORS preflight for GET
         ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
       },
     });

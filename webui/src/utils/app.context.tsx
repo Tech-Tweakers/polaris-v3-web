@@ -347,7 +347,7 @@ export const AppContextProvider = ({
 
       // enviar requisição para a Polaris
 
-      const fetchResponse = await fetch(`${BASE_URL}/inference/`, {
+      const fetchResponse = await fetch(`${BASE_URL}/inference`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt, session_id: convId }),
