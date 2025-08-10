@@ -15,7 +15,7 @@ import {
   // getSSEStreamAsync,
   getServerProps,
 } from './misc';
-import { BASE_URL, CONFIG_DEFAULT, isDev } from '../Config';
+import { getBaseUrl, CONFIG_DEFAULT, isDev } from '../Config';
 import { matchPath, useLocation, useNavigate } from 'react-router';
 import toast from 'react-hot-toast';
 
@@ -96,7 +96,7 @@ export const AppContextProvider = ({
 
   // get server props
   useEffect(() => {
-    getServerProps(BASE_URL, config.apiKey)
+    getServerProps(getBaseUrl(), config.apiKey)
       .then((props) => {
         console.debug('Server props:', props);
         setServerProps(props);
@@ -347,7 +347,7 @@ export const AppContextProvider = ({
 
       // enviar requisição para a Polaris
 
-      const fetchResponse = await fetch(`${BASE_URL}/inference`, {
+      const fetchResponse = await fetch(`${getBaseUrl()}/inference`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt, session_id: convId }),
