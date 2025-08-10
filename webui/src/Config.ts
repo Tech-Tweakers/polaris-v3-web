@@ -3,9 +3,23 @@ import { isNumeric } from './utils/misc';
 
 export const isDev = import.meta.env.MODE === 'development';
 
-// constants
-export const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? 'https://75b9c36e3185.ngrok-free.app';
+// Resolve API base URL dynamically at runtime
+export const getBaseUrl = (): string => {
+  const fromEnv = import.meta.env.VITE_API_BASE_URL as string | undefined;
+  if (fromEnv && fromEnv.trim().length > 0) {
+    return fromEnv.replace(/\/+$/, '');
+  }
+  // Optional runtime override without rebuild: set window.__API_BASE_URL__
+  if (typeof window !== 'undefined') {
+    const w = window as Window & { __API_BASE_URL__?: string };
+    const fromWindow = w.__API_BASE_URL__;
+    if (fromWindow && fromWindow.trim().length > 0) {
+      return fromWindow.replace(/\/+$/, '');
+    }
+  }
+  // Default to same-origin by returning empty string so fetch(`/path`) works
+  return '';
+};
 
 export const CONFIG_DEFAULT = {
   // Note: in order not to introduce breaking changes, please keep the same data type (number, string, etc) if you want to change the default value. Do not use null or undefined for default value.
