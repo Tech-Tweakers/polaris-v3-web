@@ -9,8 +9,9 @@ import * as fflate from 'fflate';
 /* eslint-disable */
 
 const MAX_BUNDLE_SIZE = 2 * 1024 * 1024; // só aumente se for inevitável
-// const IS_PROD = process.env.NODE_ENV === 'production';
+// const IS_PAGES = process.env.NODE_ENV === 'production';
 const IS_PAGES = !!process.env.PAGES; // set PAGES=1 no build do GitHub Pages
+const PROXY_TARGET = process.env.VITE_PROXY_TARGET || process.env.PROXY_TARGET;
 
 const GUIDE_FOR_FRONTEND = `
 <!--
@@ -83,30 +84,26 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
-    // Use sensible defaults for HMR; override via env if tunneling is required
-    // hmr: { clientPort: 443, protocol: 'wss', host: '75b9c36e3185.ngrok-free.app' },
-    proxy: {
-      '/v1': {
-        target: 'https://75b9c36e3185.ngrok-free.app',
-        changeOrigin: true,
-        secure: true,
-      },
-      '/props': {
-        target: 'https://75b9c36e3185.ngrok-free.app',
-        changeOrigin: true,
-        secure: true,
-      },
-      '/inference': {
-        target: 'https://75b9c36e3185.ngrok-free.app',
-        changeOrigin: true,
-        secure: true,
-      },
-    },
-    // Removing COEP/COOP in dev to avoid blocking cross-origin requests on some mobile browsers
-    // headers: {
-    //   'Cross-Origin-Embedder-Policy': 'require-corp',
-    //   'Cross-Origin-Opener-Policy': 'same-origin',
-    // },
-    // allowedHosts: ['75b9c36e3185.ngrok-free.app'],
+    proxy: (() => {
+      if (!PROXY_TARGET) return undefined as any;
+      const target = PROXY_TARGET;
+      return {
+        '/v1': {
+          target,
+          changeOrigin: true,
+          secure: false,
+        },
+        '/props': {
+          target,
+          changeOrigin: true,
+          secure: false,
+        },
+        '/inference': {
+          target,
+          changeOrigin: true,
+          secure: false,
+        },
+      } as Record<string, unknown>;
+    })(),
   },
 });
