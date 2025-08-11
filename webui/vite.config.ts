@@ -82,22 +82,22 @@ export default defineConfig({
   },
   server: {
     host: true,
-    port: 5173,
+    port: 443,
     // Use sensible defaults for HMR; override via env if tunneling is required
     // hmr: { clientPort: 443, protocol: 'wss', host: '75b9c36e3185.ngrok-free.app' },
     proxy: {
       '/v1': {
-        target: 'https://75b9c36e3185.ngrok-free.app',
+        target: 'https://60b23a9c7ede.ngrok-free.app',
         changeOrigin: true,
         secure: true,
       },
       '/props': {
-        target: 'https://75b9c36e3185.ngrok-free.app',
+        target: 'https://60b23a9c7ede.ngrok-free.app',
         changeOrigin: true,
         secure: true,
       },
       '/inference': {
-        target: 'https://75b9c36e3185.ngrok-free.app',
+        target: 'https://60b23a9c7ede.ngrok-free.app',
         changeOrigin: true,
         secure: true,
       },
