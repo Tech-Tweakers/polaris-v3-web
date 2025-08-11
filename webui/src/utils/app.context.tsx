@@ -12,7 +12,7 @@ import StorageUtils from './storage';
 import {
   filterThoughtFromMsgs,
   normalizeMsgsForAPI,
-  getSSEStreamAsync,
+  // getSSEStreamAsync,
   getServerProps,
 } from './misc';
 import { getBaseUrl, CONFIG_DEFAULT, isDev } from '../Config';
@@ -89,18 +89,16 @@ async function* readPlainTokensSSE(res: Response) {
       // ignora heartbeats/linhas de comentário
       if (raw.startsWith(':')) continue;
 
-    const dataLines = raw.split(/\r?\n/).filter(l => l.startsWith('data:'));
-    const payload = dataLines
-      .map(l => l.replace(/^data:\s?/, '')) // remove só o prefixo, preserva espaços do modelo
-      .join('\n');                          // mantém \n legítimos; NADA de trim
-
+      const dataLines = raw.split(/\r?\n/).filter((l) => l.startsWith('data:'));
+      const payload = dataLines
+        .map((l) => l.replace(/^data:\s?/, '')) // remove só o prefixo, preserva espaços do modelo
+        .join('\n'); // mantém \n legítimos; NADA de trim
 
       if (payload === '[DONE]') return;
       if (payload) yield payload; // sem trim!
     }
   }
 }
-
 
 export const AppContextProvider = ({
   children,
@@ -223,49 +221,50 @@ export const AppContextProvider = ({
     };
     setPending(convId, pendingMsg);
 
-      try {
-        // prepare messages for API
-        let messages: APIMessage[] = [
-          ...(config.systemMessage.length === 0
-            ? []
-            : [{ role: 'system', content: config.systemMessage } as APIMessage]),
-          ...normalizeMsgsForAPI(currMessages),
-        ];
-        if (config.excludeThoughtOnReq) {
-          messages = filterThoughtFromMsgs(messages);
-        }
-        if (isDev) console.log({ messages });
+    try {
+      // prepare messages for API
+      let messages: APIMessage[] = [
+        ...(config.systemMessage.length === 0
+          ? []
+          : [{ role: 'system', content: config.systemMessage } as APIMessage]),
+        ...normalizeMsgsForAPI(currMessages),
+      ];
+      if (config.excludeThoughtOnReq) {
+        messages = filterThoughtFromMsgs(messages);
+      }
+      if (isDev) console.log({ messages });
 
-        // prepare params
-        const params = {
-          messages,
-          stream: true,
-          cache_prompt: true,
-          samplers: config.samplers,
-          temperature: config.temperature,
-          dynatemp_range: config.dynatemp_range,
-          dynatemp_exponent: config.dynatemp_exponent,
-          top_k: config.top_k,
-          top_p: config.top_p,
-          min_p: config.min_p,
-          typical_p: config.typical_p,
-          xtc_probability: config.xtc_probability,
-          xtc_threshold: config.xtc_threshold,
-          repeat_last_n: config.repeat_last_n,
-          repeat_penalty: config.repeat_penalty,
-          presence_penalty: config.presence_penalty,
-          frequency_penalty: config.frequency_penalty,
-          dry_multiplier: config.dry_multiplier,
-          dry_base: config.dry_base,
-          dry_allowed_length: config.dry_allowed_length,
-          dry_penalty_last_n: config.dry_penalty_last_n,
-          max_tokens: config.max_tokens,
-          timings_per_token: !!config.showTokensPerSecond,
-          ...(config.custom.length ? JSON.parse(config.custom) : {}),
-        };
+      // prepare params
+      // const params = {
+      //   messages,
+      //   stream: true,
+      //   cache_prompt: true,
+      //   samplers: config.samplers,
+      //   temperature: config.temperature,
+      //   dynatemp_range: config.dynatemp_range,
+      //   dynatemp_exponent: config.dynatemp_exponent,
+      //   top_k: config.top_k,
+      //   top_p: config.top_p,
+      //   min_p: config.min_p,
+      //   typical_p: config.typical_p,
+      //   xtc_probability: config.xtc_probability,
+      //   xtc_threshold: config.xtc_threshold,
+      //   repeat_last_n: config.repeat_last_n,
+      //   repeat_penalty: config.repeat_penalty,
+      //   presence_penalty: config.presence_penalty,
+      //   frequency_penalty: config.frequency_penalty,
+      //   dry_multiplier: config.dry_multiplier,
+      //   dry_base: config.dry_base,
+      //   dry_allowed_length: config.dry_allowed_length,
+      //   dry_penalty_last_n: config.dry_penalty_last_n,
+      //   max_tokens: config.max_tokens,
+      //   timings_per_token: !!config.showTokensPerSecond,
+      //   ...(config.custom.length ? JSON.parse(config.custom) : {}),
+      // };
 
-        function buildPromptFromMessages(messages: APIMessage[]): string {
-          return messages.map(m => {
+      function buildPromptFromMessages(messages: APIMessage[]): string {
+        return messages
+          .map((m) => {
             switch (m.role) {
               case 'system':
                 return `<<SYS>>\n${m.content}\n<</SYS>>`;
@@ -276,50 +275,51 @@ export const AppContextProvider = ({
               default:
                 return `${m.role}: ${m.content}`;
             }
-          }).join('\n\n');
-        }
-
-        // send request
-        const baseUrl = getBaseUrl();
-        const fetchResponse = await fetch(`${baseUrl}/inference/stream/`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: buildPromptFromMessages(messages),
-            session_id: convId,
-          }),
-          signal: abortController.signal,
-        });
-
-        if (fetchResponse.status !== 200) {
-          const body = await fetchResponse.json();
-          throw new Error(body?.error?.message || 'Unknown error');
-        }
-        for await (const token of readPlainTokensSSE(fetchResponse)) {
-          const lastContent = pendingMsg.content || '';
-          pendingMsg = { ...pendingMsg, content: lastContent + token };
-          setPending(convId, pendingMsg);
-          onChunk();
-        }
-      } catch (err) {
-        setPending(convId, null);
-        if ((err as Error).name === 'AbortError') {
-          // user stopped the generation via stopGeneration() function
-          // we can safely ignore this error
-        } else {
-          console.error(err);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          toast.error((err as any)?.message ?? 'Unknown error');
-          throw err; // rethrow
-        }
+          })
+          .join('\n\n');
       }
 
-      if (pendingMsg.content !== null) {
-        await StorageUtils.appendMsg(pendingMsg as Message, leafNodeId);
+      // send request
+      const baseUrl = getBaseUrl();
+      const fetchResponse = await fetch(`${baseUrl}/inference/stream/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: buildPromptFromMessages(messages),
+          session_id: convId,
+        }),
+        signal: abortController.signal,
+      });
+
+      if (fetchResponse.status !== 200) {
+        const body = await fetchResponse.json();
+        throw new Error(body?.error?.message || 'Unknown error');
       }
+      for await (const token of readPlainTokensSSE(fetchResponse)) {
+        const lastContent = pendingMsg.content || '';
+        pendingMsg = { ...pendingMsg, content: lastContent + token };
+        setPending(convId, pendingMsg);
+        onChunk();
+      }
+    } catch (err) {
       setPending(convId, null);
-      onChunk(pendingId); // trigger scroll to bottom and switch to the last node
-    };
+      if ((err as Error).name === 'AbortError') {
+        // user stopped the generation via stopGeneration() function
+        // we can safely ignore this error
+      } else {
+        console.error(err);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        toast.error((err as any)?.message ?? 'Unknown error');
+        throw err; // rethrow
+      }
+    }
+
+    if (pendingMsg.content !== null) {
+      await StorageUtils.appendMsg(pendingMsg as Message, leafNodeId);
+    }
+    setPending(convId, null);
+    onChunk(pendingId); // trigger scroll to bottom and switch to the last node
+  };
 
   //   try {
   //     // preparar mensagens para montar o prompt
