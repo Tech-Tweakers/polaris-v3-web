@@ -70,33 +70,48 @@ const getViewingChat = async (convId: string): Promise<ViewingChat | null> => {
   };
 };
 
-async function* readPlainTokensSSE(res: Response) {
+async function* readTokensSSE(res: Response) {
   if (!res.body) throw new Error('No response body');
   const reader = res.body.getReader();
   const dec = new TextDecoder();
   let buf = '';
+
   while (true) {
     const { value, done } = await reader.read();
-    if (done) break;
-    buf += dec.decode(value, { stream: true });
+    buf += dec.decode(value || new Uint8Array(), { stream: !done });
 
-    // eventos separados por linha em branco
+    // eventos SSE são separados por linha em branco
     let idx;
     while ((idx = buf.indexOf('\n\n')) !== -1) {
       const raw = buf.slice(0, idx);
       buf = buf.slice(idx + 2);
 
-      // ignora heartbeats/linhas de comentário
-      if (raw.startsWith(':')) continue;
+      // ignora heartbeats
+      if (!raw || raw.startsWith(':')) continue;
 
+      // podem vir várias linhas data:
       const dataLines = raw.split(/\r?\n/).filter((l) => l.startsWith('data:'));
-      const payload = dataLines
-        .map((l) => l.replace(/^data:\s?/, '')) // remove só o prefixo, preserva espaços do modelo
-        .join('\n'); // mantém \n legítimos; NADA de trim
+      if (dataLines.length === 0) continue;
 
-      if (payload === '[DONE]') return;
-      if (payload) yield payload; // sem trim!
+      // junta payload do MESMO evento (preserva \n legítimo)
+      const joined = dataLines
+        .map((l) => l.replace(/^data:\s?/, ''))
+        .join('\n');
+
+      if (joined === '[DONE]') return;
+
+      // tenta JSON { delta, done }
+      try {
+        const obj = JSON.parse(joined);
+        if (typeof obj?.delta === 'string') yield obj.delta; // NADA de trim!
+        continue;
+      } catch {
+        // fallback: servidor antigo mandava texto cru
+        yield joined;
+      }
     }
+
+    if (done) break;
   }
 }
 
@@ -281,9 +296,13 @@ export const AppContextProvider = ({
 
       // send request
       const baseUrl = getBaseUrl();
+      // ...
       const fetchResponse = await fetch(`${baseUrl}/inference/stream/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'text/event-stream',
+        },
         body: JSON.stringify({
           prompt: buildPromptFromMessages(messages),
           session_id: convId,
@@ -292,10 +311,11 @@ export const AppContextProvider = ({
       });
 
       if (fetchResponse.status !== 200) {
-        const body = await fetchResponse.json();
+        const body = await fetchResponse.json().catch(() => ({}));
         throw new Error(body?.error?.message || 'Unknown error');
       }
-      for await (const token of readPlainTokensSSE(fetchResponse)) {
+
+      for await (const token of readTokensSSE(fetchResponse)) {
         const lastContent = pendingMsg.content || '';
         pendingMsg = { ...pendingMsg, content: lastContent + token };
         setPending(convId, pendingMsg);
