@@ -87,17 +87,17 @@ export default defineConfig({
     // hmr: { clientPort: 443, protocol: 'wss', host: '75b9c36e3185.ngrok-free.app' },
     proxy: {
       '/v1': {
-        target: 'https://60b23a9c7ede.ngrok-free.app',
+        target: 'https://7001d53d6f99.ngrok-free.app',
         changeOrigin: true,
         secure: true,
       },
       '/props': {
-        target: 'https://60b23a9c7ede.ngrok-free.app',
+        target: 'https://7001d53d6f99.ngrok-free.app',
         changeOrigin: true,
         secure: true,
       },
       '/stream': {
-        target: 'https://60b23a9c7ede.ngrok-free.app',
+        target: 'https://7001d53d6f99.ngrok-free.app',
         changeOrigin: true,
         secure: true,
       },
